@@ -1,0 +1,72 @@
+workflows:
+  patrol-ios-integration-tests:
+    name: iOS Patrol Integration Tests
+    environment:
+      flutter: 3.24.3
+      xcode: 16.1 
+      cocoapods: 1.14.3 
+    cache:
+      cache_paths:
+        - $HOME/Library/Caches/CocoaPods
+        - $HOME/.pub-cache
+    scripts:
+      # Prepare environment
+      - flutter clean
+      - flutter pub get
+      
+      # Install Patrol CLI
+      - dart pub global activate patrol_cli
+      - dart pub global run patrol:bootstrap
+      
+      # Prepare simulators
+      - xcrun simctl create patrol-test-device "iPhone 15 Pro" com.apple.CoreSimulator.SimRuntime.iOS-16-4
+      
+      # Run Patrol tests
+      - patrol test integration_test/ -d patrol-test-device
+    
+    artifacts:
+      - flutter_drive.log
+      - build/app/outputs/flutter-apk/*.apk
+    
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com
+
+  patrol-android-integration-tests:
+    name: Android Patrol Integration Tests
+    environment:
+      flutter: 3.24.3
+    cache:
+      cache_paths:
+        - $HOME/.gradle
+        - $HOME/.pub-cache
+    scripts:
+      # Prepare environment
+      - flutter clean
+      - flutter pub get
+      
+      # Install Patrol CLI
+      - dart pub global activate patrol_cli
+      - dart pub global run patrol:bootstrap
+      
+      # Create Android emulator
+      - |
+        echo "no" | sdkmanager "system-images;android-30;google_apis;x86_64"
+        echo "no" | avdmanager create avd -n patrol-android-test -k "system-images;android-30;google_apis;x86_64"
+      
+      # Start emulator
+      - emulator -avd patrol-android-test -no-window -no-audio &
+      - timeout 300 bash -c 'until adb shell ps; do sleep 1; done'
+      
+      # Run Patrol tests
+      - patrol test integration_test/ -d patrol-android-test
+    
+    artifacts:
+      - flutter_drive.log
+      - build/app/outputs/flutter-apk/*.apk
+    
+    publishing:
+      email:
+        recipients:
+          - baloabby@gmail.com
