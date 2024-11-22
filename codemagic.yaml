@@ -57,13 +57,15 @@ workflows:
       - dart pub add --dev patrol
       - dart pub global activate patrol_cli
       
-      # Create Android emulator
-      - echo "no" | avdmanager create avd -n patrol-test -k "system-images;android-30;google_apis;x86_64"
-      - emulator -avd patrol-test -no-window -no-audio &
+      # Android SDK and emulator setup
+      - |
+        sdkmanager --update
+        sdkmanager "platform-tools" "platforms;android-30" "system-images;android-30;google_apis;x86_64"
+        echo "no" | avdmanager create avd -n patrol-test -k "system-images;android-30;google_apis;x86_64"
       
       # Start emulator
-      - emulator -avd patrol-android-test -no-window -no-audio &
-      - timeout 300 bash -c 'until adb shell ps; do sleep 1; done'
+      - emulator -avd patrol-test -no-window -no-audio &
+      - sleep 60 
 
       # Wait for emulator
       - android-wait-for-emulator
