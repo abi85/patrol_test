@@ -47,8 +47,8 @@ workflows:
       - flutter pub get
       
       # Install Patrol CLI
+      - dart pub add --dev patrol
       - dart pub global activate patrol_cli
-      - dart pub global run patrol:bootstrap
       
       # Create Android emulator
       - |
