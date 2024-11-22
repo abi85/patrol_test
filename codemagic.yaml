@@ -41,7 +41,14 @@ workflows:
       cache_paths:
         - $HOME/.gradle
         - $HOME/.pub-cache
-    scripts:
+    scripts:   
+    # Ensure Android SDK tools are available
+      - wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+      - unzip commandlinetools-linux-9477386_latest.zip
+      - mkdir -p $ANDROID_HOME/cmdline-tools/latest
+      - mv cmdline-tools/* $ANDROID_HOME/cmdline-tools/latest/
+      - export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
+      
       # Prepare environment
       - flutter clean
       - flutter pub get
@@ -51,16 +58,19 @@ workflows:
       - dart pub global activate patrol_cli
       
       # Create Android emulator
-      - |
-        echo "no" | sdkmanager "system-images;android-30;google_apis;x86_64"
-        echo "no" | avdmanager create avd -n patrol-android-test -k "system-images;android-30;google_apis;x86_64"
+      - echo "no" | avdmanager create avd -n patrol-test -k "system-images;android-30;google_apis;x86_64"
+      - emulator -avd patrol-test -no-window -no-audio &
       
       # Start emulator
       - emulator -avd patrol-android-test -no-window -no-audio &
       - timeout 300 bash -c 'until adb shell ps; do sleep 1; done'
+
+      # Wait for emulator
+      - android-wait-for-emulator
       
       # Run Patrol tests
-      - patrol test integration_test/ -d patrol-android-test
+      - patrol test integration_test
+      
     
     artifacts:
       - flutter_drive.log
