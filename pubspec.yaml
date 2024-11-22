@@ -18,7 +18,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
-  patrol: ^3.11.0
+  patrol: ^3.12.0
   integration_test:
     sdk: flutter
 
@@ -27,7 +27,7 @@ patrol:
   android:
     package_name: com.example.flutter_patrol_tutorial
   ios:
-    bundle_id: com.example.flutter_patrol_tutorial
+    bundle_id: com.example.flutterPatrolTutorial
 
 flutter:
   uses-material-design: true
