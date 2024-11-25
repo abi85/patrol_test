@@ -1,16 +1,17 @@
 workflows:
   patrol_test:
     name: Patrol Test Workflow
-    instance_type: linux_x2
+    max_build_duration: 60
+    instance_type: linux
     environment:
-      flutter: stable
+      flutter: fvm
       xcode: latest
       cocoapods: default
 
     scripts:
       - name: Install Patrol CLI
         script: dart pub global activate patrol_cli
-        
+
       - name: List Emulators
         script: emulator -list-avds
           
