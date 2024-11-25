@@ -31,7 +31,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - your-email@example.com
+          - baloabby@gmail.com
 
   patrol-android-integration-tests:
     name: Android Patrol Integration Tests
@@ -42,18 +42,18 @@ workflows:
         - $HOME/.gradle
         - $HOME/.pub-cache
     scripts:   
+    # Prepare environment
+      - flutter clean
+      - flutter pub get
+
+    # Install Patrol CLI
+      - dart pub add --dev patrol
+      - dart pub global activate patrol_cli
+
     # Ensure Android SDK tools are available
       - yes | sdkmanager --licenses
       - sdkmanager "platform-tools" "platforms;android-30" "build-tools;30.0.3"
       - sdkmanager "system-images;android-30;google_apis;x86_64"
-      
-      # Prepare environment
-      - flutter clean
-      - flutter pub get
-      
-      # Install Patrol CLI
-      - dart pub add --dev patrol
-      - dart pub global activate patrol_cli
       
       # Android SDK and emulator setup
       - echo "no" | avdmanager create avd -n test-emulator -k "system-images;android-30;google_apis;x86_64"
@@ -64,7 +64,7 @@ workflows:
       - android-wait-for-emulator
       
       # Run Patrol tests
-      - patrol test integration_test
+      - patrol test -t integration_test
       
     
     artifacts:
