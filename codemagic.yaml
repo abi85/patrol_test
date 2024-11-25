@@ -58,6 +58,7 @@ workflows:
       - export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
 
     # Ensure Android SDK tools are available
+      - cd $ANDROID_HOME/cmdline-tools/latest/bin    
       - sdkmanager --list
       - which sdkmanager
       - ls -R $ANDROID_HOME
