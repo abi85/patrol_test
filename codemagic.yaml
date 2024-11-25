@@ -19,11 +19,16 @@ workflows:
       # 2. Set up Android SDK Command-Line Tools
       - name: Set up Android SDK
         script: |
-          mkdir -p $ANDROID_HOME/cmdline-tools
-          curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-mac-9477386_latest.zip
-          unzip sdk-tools.zip -d $ANDROID_HOME/cmdline-tools
-          mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
-          rm sdk-tools.zip
+          sudo apt-get update
+          sudo apt-get install -y wget unzip
+          wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip -O commandlinetools.zip
+          unzip commandlinetools.zip -d $HOME/android-sdk
+          rm commandlinetools.zip
+          echo "export ANDROID_HOME=$HOME/android-sdk" >> $BASH_ENV
+          echo "export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH" >> $BASH_ENV
+          source $BASH_ENV
+          yes | sdkmanager --licenses
+          sdkmanager "platform-tools" "platforms;android-30" "emulator" "system-images;android-30;google_apis;x86_64"
 
       - name: Debug PATH and SDK Tools
         script: |
@@ -35,6 +40,12 @@ workflows:
         script: |
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "system-images;android-30;google_apis_playstore;arm64-v8a"
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+
+      - name: Launch Android emulator
+        script: |
+          cd $ANDROID_HOME/tools
+          emulator -avd emulator &
+          adb wait-for-device      
 
       - name: Install Patrol CLI
         script: dart pub global activate patrol_cli
