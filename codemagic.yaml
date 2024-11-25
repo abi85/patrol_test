@@ -41,7 +41,7 @@ workflows:
       cache_paths:
         - $HOME/.gradle
         - $HOME/.pub-cache
-    scripts:   
+    scripts:
     # Prepare environment
       - flutter clean
       - flutter pub get
@@ -55,6 +55,12 @@ workflows:
       - curl -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-mac-7583922_latest.zip
       - unzip -q commandlinetools.zip -d $ANDROID_HOME/cmdline-tools
       - mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+
+    
+    # Install Patrol CLI
+      - cd $ANDROID_HOME/tools
+      - emulator -avd emulator &
+      - adb wait-for-device     
 
 
     # Ensure Android SDK tools are available
