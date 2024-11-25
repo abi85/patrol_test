@@ -55,13 +55,13 @@ workflows:
       - curl -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-mac-7583922_latest.zip
       - unzip -q commandlinetools.zip -d $ANDROID_HOME/cmdline-tools
       - mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
-
-    
-    # Install Patrol CLI
-      - cd $ANDROID_HOME/tools
-      - emulator -avd emulator    
+      - export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
 
     # Ensure Android SDK tools are available
+      - sdkmanager --list
+      - which sdkmanager
+      - ls -R $ANDROID_HOME
+      - yes | sdkmanager --licenses
       - sdkmanager "platform-tools" "platforms;android-30" "build-tools;30.0.3"
       - sdkmanager "system-images;android-30;google_apis;x86_64"
 
