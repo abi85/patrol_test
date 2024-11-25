@@ -13,14 +13,6 @@ workflows:
       - name: Install Flutter dependencies
         script: |
           flutter pub get
-
-      - name: Install Android SDK Command-Line Tools
-        script: |
-          sdkmanager --install "cmdline-tools;latest"
-          sdkmanager --install "platform-tools"
-          sdkmanager --install "emulator"
-          sdkmanager --install "system-images;android-30;google_apis;x86_64"
-          sdkmanager --licenses
           
       # 2. Set up Android SDK Command-Line Tools
       - name: Set up Android SDK
@@ -33,6 +25,14 @@ workflows:
           sdkmanager --update
           yes | sdkmanager --licenses
           sdkmanager "system-images;android-30;google_apis;x86_64"
+
+      - name: Install Android SDK Command-Line Tools
+        script: |
+          sdkmanager --install "cmdline-tools;latest"
+          sdkmanager --install "platform-tools"
+          sdkmanager --install "emulator"
+          sdkmanager --install "system-images;android-30;google_apis;x86_64"
+          sdkmanager --licenses
 
       - name: Debug AVD setup
         script: |
