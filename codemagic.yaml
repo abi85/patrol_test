@@ -37,16 +37,11 @@ workflows:
           
       # 3. Create Android Virtual Device (AVD)
       - name: Set up Android emulator
-        script: |
+        script:
           sdkmanager --update
-          sdkmanager --list
-          sdkmanager "emulator"
-          echo "no" | $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager create avd -n patrol_test_avd -k "system-images;android-30;google_apis_playstore;arm64-v8a" --device "pixel_3a"
-          echo "no" | sdkmanager "system-images;android-30;google_apis_playstore;x86_64"
-          echo "no" | avdmanager create avd -n Patrol_Test -k "system-images;android-30;google_apis_playstore;x86_64" --device "pixel_3a"
-          $ANDROID_HOME/emulator/emulator -avd patrol_test_avd -verbose
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list 
-          $ANDROID_HOME/emulator/emulator -avd patrol_test_avd -no-window -gpu swiftshader_indirect -no-snapshot &
+          - echo "y" | sdkmanager --install "emulator" "platform-tools" "platforms;android-30" "system-images;android-30;google_apis_playstore;arm64-v8a""
+          - avdmanager create avd -n test_avd -k "system-images;android-30;google_apis_playstore;x86_64" --device "pixel"
+          - $ANDROID_HOME/emulator/emulator -avd test_avd -gpu swiftshader_indirect &
           adb wait-for-device
           adb shell input keyevent 82 # Unlock screen
 
