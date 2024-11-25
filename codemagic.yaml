@@ -50,6 +50,13 @@ workflows:
       - dart pub add --dev patrol
       - dart pub global activate patrol_cli
 
+
+      - mkdir -p $ANDROID_HOME/cmdline-tools
+      - curl -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-mac-7583922_latest.zip
+      - unzip -q commandlinetools.zip -d $ANDROID_HOME/cmdline-tools
+      - mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+
+
     # Ensure Android SDK tools are available
       - yes | sdkmanager --licenses
       - sdkmanager "platform-tools" "platforms;android-30" "build-tools;30.0.3"
