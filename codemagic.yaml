@@ -8,6 +8,9 @@ workflows:
       cocoapods: default
 
     scripts:
+      - name: Install Patrol CLI
+        script: dart pub global activate patrol_cli
+        
       - name: List Emulators
         script: emulator -list-avds
           
@@ -19,11 +22,10 @@ workflows:
 
       - name: Launch emulator
         script: |
-           cd $ANDROID_HOME/tools emulator -avd emulator & adb wait-for-device
+           cd $ANDROID_HOME/tools
+           emulator -avd emulator & 
+           adb wait-for-device
       
-      - name: Install Patrol CLI
-        script: dart pub global activate patrol_cli
-
       - name: Run tests with Patrol
         script: patrol test -t integration_test/e2e_test.dart
         ignore_failure: true
