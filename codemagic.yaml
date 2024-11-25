@@ -23,6 +23,14 @@ workflows:
           sdkmanager --update
           yes | sdkmanager --licenses
           sdkmanager "system-images;android-30;google_apis;x86_64"
+
+      - name: Debug AVD setup
+        script: |
+          sdkmanager --list
+          avdmanager list device
+          avdmanager list avd
+          echo "AVD files:"
+          ls -l $HOME/.android/avd
           
       # 3. Create Android Virtual Device (AVD)
       - name: Set up Android emulator
