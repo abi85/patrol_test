@@ -5,6 +5,7 @@ workflows:
     environment:
       flutter: stable
       xcode: latest
+      java: 11
       vars:
         ANDROID_HOME: $HOME/Library/Android/sdk
         ANDROID_SDK_ROOT: /opt/android-sdk
@@ -34,31 +35,6 @@ workflows:
         script: |
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "system-images;android-30;google_apis_playstore;arm64-v8a"
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
-
-      - name: Set up Android emulatorf
-        script: |
-          - echo "Downloading Android SDK..."
-          - curl -O https://dl.google.com/android/repository/commandlinetools-mac-8512546_latest.zip
-          - unzip commandlinetools-mac-8512546_latest.zip -d $HOME/Library/Android/sdk/cmdline-tools
-          - mv $HOME/Library/Android/sdk/cmdline-tools/cmdline-tools $HOME/Library/Android/sdk/cmdline-tools/latest
-          - export ANDROID_HOME=$HOME/Library/Android/sdk
-          - export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$PATH
-          - echo "y" | sdkmanager --install "platform-tools" "emulator" "platforms;android-30" "system-images;android-30;google_apis_playstore;x86_64"
-          - echo "Creating AVD..."
-          - echo "no" | avdmanager create avd -n test_avd -k "system-images;android-30;google_apis_playstore;x86_64" --device "pixel"
-          - echo "Launching emulator..."
-          - $ANDROID_HOME/emulator/emulator -avd test_avd -gpu swiftshader_indirect &
-
-          
-      # 3. Create Android Virtual Device (AVD)
-      - name: Set up Android emulator
-        script: |
-          sdkmanager --update
-          - echo "y" | sdkmanager --install "emulator" "platform-tools" "platforms;android-30" "system-images;android-30;google_apis_playstore;arm64-v8a"
-          - avdmanager create avd -n test_avd -k "system-images;android-30;google_apis_playstore;x86_64" --device "pixel"
-          - $ANDROID_HOME/emulator/emulator -avd test_avd -gpu swiftshader_indirect &
-          adb wait-for-device
-          adb shell input keyevent 82 # Unlock screen
 
       - name: Run tests with Patrol
         script: patrol test -t integration_test/e2e_test.dart
