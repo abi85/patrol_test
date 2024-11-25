@@ -4,7 +4,7 @@ workflows:
     max_build_duration: 60
     instance_type: linux
     environment:
-      flutter: fvm
+      flutter: stable
       xcode: latest
       cocoapods: default
 
