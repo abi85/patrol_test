@@ -28,6 +28,7 @@ workflows:
       - name: Set up Android emulator
         script: |
           echo "no" | avdmanager create avd -n patrol_test_avd -k "system-images;android-30;google_apis;x86_64" --device "pixel_3a"
+          emulator -list-avds
           emulator -avd patrol_test_avd -no-snapshot -no-audio -no-window &
           adb wait-for-device
           adb shell input keyevent 82  # Unlock emulator screen
