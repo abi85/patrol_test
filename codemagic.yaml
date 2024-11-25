@@ -5,48 +5,24 @@ workflows:
     environment:
       flutter: stable
       xcode: latest
-      java: 11
-      vars:
-        ANDROID_HOME: $HOME/Library/Android/sdk
-        ANDROID_SDK_ROOT: /opt/android-sdk
-        PATH: $PATH:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:/opt/android-sdk/emulator
+      cocoapods: default
+
     scripts:
       # 1. Install Flutter dependencies
-      - name: Install Flutter dependencies
-        script: |
-          flutter pub get
+      - name: List Emulators
+        script: emulator -list -avds
           
       # 2. Set up Android SDK Command-Line Tools
-      - name: Set up Android SDK
+      - name: SDK manager
         script: |
-          sudo apt-get update
-          sudo apt-get install -y wget unzip
-          wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip -O commandlinetools.zip
-          unzip commandlinetools.zip -d $HOME/android-sdk
-          rm commandlinetools.zip
-          echo "export ANDROID_HOME=$HOME/android-sdk" >> $BASH_ENV
-          echo "export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH" >> $BASH_ENV
-          source $BASH_ENV
+          export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools 
+          sdkmanager --update
           yes | sdkmanager --licenses
-          sdkmanager "platform-tools" "platforms;android-30" "emulator" "system-images;android-30;google_apis;x86_64"
 
-      - name: Debug PATH and SDK Tools
+      - name: Launch emulator
         script: |
-          echo "PATH: $PATH"
-          which sdkmanager || echo "sdkmanager not found"
-          ls -l $ANDROID_HOME/cmdline-tools/latest/bin || echo "SDK Tools directory not found"
+           cd $ANDROID_HOME/tools emulator -avd emulator & adb wait-for-device
       
-      - name: Install Android SDK Components
-        script: |
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "system-images;android-30;google_apis_playstore;arm64-v8a"
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
-
-      - name: Launch Android emulator
-        script: |
-          cd $ANDROID_HOME/tools
-          emulator -avd emulator &
-          adb wait-for-device      
-
       - name: Install Patrol CLI
         script: dart pub global activate patrol_cli
 
