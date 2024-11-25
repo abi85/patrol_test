@@ -1,6 +1,7 @@
 workflows:
   patrol_test:
     name: Patrol Test Workflow
+    instance_type: linux_x2
     environment:
       flutter: stable
       xcode: latest
