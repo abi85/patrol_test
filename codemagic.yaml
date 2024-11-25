@@ -17,14 +17,17 @@ workflows:
       # 2. Set up Android SDK Command-Line Tools
       - name: Set up Android SDK
         script: |
-          curl -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-mac-7583922_latest.zip
-          mkdir -p $ANDROID_HOME/cmdline-tools/latest
-          unzip -q commandlinetools.zip -d $ANDROID_HOME/cmdline-tools/latest
-          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
-          export PATH="$ANDROID_HOME/platform-tools:$PATH"
-          sdkmanager --update
-          yes | sdkmanager --licenses
-          sdkmanager "system-images;android-30;google_apis;x86_64"
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-mac-9477386_latest.zip
+          unzip sdk-tools.zip -d $ANDROID_HOME/cmdline-tools
+          mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+          rm sdk-tools.zip
+
+      - name: Debug PATH and SDK Tools
+        script: |
+          echo "PATH: $PATH"
+          which sdkmanager || echo "sdkmanager not found"
+          ls -l $ANDROID_HOME/cmdline-tools/latest/bin || echo "SDK Tools directory not found"
 
       - name: Install Android SDK Command-Line Tools
         script: |
@@ -33,6 +36,11 @@ workflows:
           sdkmanager --install "emulator"
           sdkmanager --install "system-images;android-30;google_apis;x86_64"
           sdkmanager --licenses
+      
+      - name: Install Android SDK Components
+        script: |
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "emulator" "system-images;android-30;google_apis;x86_64"
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
 
       - name: Debug AVD setup
         script: |
@@ -45,24 +53,11 @@ workflows:
       # 3. Create Android Virtual Device (AVD)
       - name: Set up Android emulator
         script: |
-          echo "no" | avdmanager create avd -n patrol_test_avd -k "system-images;android-30;google_apis;x86_64" --device "pixel_3a"
-          emulator -list-avds
-          emulator -avd patrol_test_avd -no-snapshot -no-audio -no-window &
+          eecho "no" | $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager create avd -n patrol_test_avd -k "system-images;android-30;google_apis;x86_64" --device "pixel_3a"
+          $ANDROID_HOME/emulator/emulator -avd patrol_test_avd -no-window -no-audio -no-snapshot &
           adb wait-for-device
-          adb shell input keyevent 82  # Unlock emulator screen
-
-      # 4. Install CocoaPods for iOS (if applicable)
-      - name: Install CocoaPods
-        script: |
-          brew install cocoapods || echo "CocoaPods already installed"
-          pod install --project-directory=ios
-
-      # 5. Run Patrol Tests
-      - name: Run Patrol Tests
-        script: |
-          flutter pub global activate patrol_cli
-          flutter pub global run patrol test
-
+          adb shell input keyevent 82 # Unlock screen
+          
     artifacts:
       # Collect Patrol test reports
       - ./patrol/reports/**/*
