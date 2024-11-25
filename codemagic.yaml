@@ -39,6 +39,7 @@ workflows:
         script: |
           avdmanager list device
           echo "no" | $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager create avd -n patrol_test_avd -k "system-images;android-30;google_apis_playstore;arm64-v8a" --device "pixel_4"
+          $ANDROID_HOME/emulator/emulator -avd Ppatrol_test_avd -verbose
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list 
           $ANDROID_HOME/emulator/emulator -avd patrol_test_avd -no-window -gpu swiftshader_indirect -no-snapshot &
           adb wait-for-device
