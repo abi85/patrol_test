@@ -42,3 +42,7 @@ workflows:
     artifacts:
       # Collect Patrol test reports
       - ./patrol/reports/**/*
+    publishing:
+      email:
+        recipients:
+          - baloabby@gmail.com
