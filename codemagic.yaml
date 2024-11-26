@@ -1,53 +1,13 @@
 workflows:
   ios-integration-test:
     name: iOS Integration Test
-    instance_type: linux_x2
-    max_build_duration: 120
+    instance_type: linux
+    max_build_duration: 60
     environment:
-      vars:
-        FLUTTER_VERSION: 3.19.0
-        XCODE_WORKSPACE: "Runner.xcworkspace"
-        XCODE_SCHEME: "Runner" 
       flutter: stable
       xcode: latest
       cocoapods: default
-    triggering:
-      events:  
-        - push
     scripts:
-      - name: Setup Flutter and Patrol
-        script: |
-          # Install Flutter
-          git clone https://github.com/flutter/flutter.git -b stable
-          export PATH="$PATH:$HOME/flutter/bin"
-          flutter config --no-analytics
-          
-          # Setup iOS deployment tools
-          sudo gem install cocoapods
-          
-          # Install Patrol CLI
-          flutter pub global activate patrol_cli
-          export PATH="$PATH:$HOME/.pub-cache/bin"
-          
-          # Print versions for verification
-          flutter --version
-          dart --version
-          patrol --version
-
-      - name: Prepare iOS Environment
-        script: |
-          # Install Xcode command line tools
-          xcode-select --install || true
-          
-          # Accept Xcode licenses
-          sudo xcodebuild -license accept
-          
-          # Setup iOS simulators
-          xcrun simctl delete unavailable
-          xcrun simctl create patrol_test_simulator \
-            com.apple.CoreSimulator.SimDeviceType.iPhone-15 \
-            com.apple.CoreSimulator.SimRuntime.iOS-16-4
-
       - name: Get Flutter packages
         script: |
           flutter pub get
@@ -55,6 +15,7 @@ workflows:
           
       - name: Install CocoaPods
         script: |
+          brew install cocoapods
           cd ios
           pod install
           cd ..
