@@ -7,7 +7,7 @@ workflows:
       flutter: 3.24.3
     triggering:
       events:
-        - tag
+        - push
       branch_patterns:
         - pattern: '*'
           include: true
@@ -54,7 +54,7 @@ workflows:
       cocoapods: default
     triggering:
       events:
-        - tag
+        - push
       branch_patterns:
         - pattern: '*'
           include: true
