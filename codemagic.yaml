@@ -35,7 +35,7 @@ workflows:
            flutter devices
       
       - name: Run tests with Patrol
-        script: patrol test -t integration_test/fail_login_test.dart
+        script: patrol test -t integration_test/fail_login_test.dart  --verbose
         ignore_failure: false
     artifacts:
       - ./patrol/reports/**/*
@@ -80,6 +80,7 @@ workflows:
       - name: Run Patrol tests
         script: |
           patrol test -t integration_test/fail_login_test.dart -d "iPhone 15" --debug
+        
           
     artifacts:
       - patrol-results/**/*.png
