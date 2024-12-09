@@ -1,6 +1,15 @@
 definitions:
   qa_emails: &qa_emails
     - baloabby@gmail.com
+  
+  artifacts: &artifacts
+    - patrol-results/**/*.png
+    - patrol-results/**/*.xml
+    - patrol-results/**/*.mp4
+    - test-reports/**/*
+    - test-summary/**/*
+
+  max_build_duration: &duration 120
 
   env_settings: &env_settings
     flutter: 3.24.3
@@ -8,6 +17,12 @@ definitions:
     cocoapods: default
 
   scripts:
+    - &setup_report_dirs
+      name: Setup Report Directories
+      script: |
+        mkdir -p test-reports/{android,ios}/{xml,html}
+        mkdir -p test-summary
+
     - &install_flutter_dependencies
       name: Get Flutter dependencies
       script: |
@@ -18,23 +33,14 @@ definitions:
       name: Install Patrol CLI
       script: |
         dart pub global activate patrol_cli 3.4.0
-
-        
-    - &setup_test_report_directory
-      name: Setup Test Report Directory
-      script: |
-        mkdir -p $FCI_BUILD_DIR/test-results/{android,ios}/{reports,screenshots}
-
+        export PATH="$PATH:$HOME/.pub-cache/bin"
 
     - &android_setup_emulator
       name: Setup Android Emulator
       script: |
-        # Setup SDK
         export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
         sdkmanager --update
         yes | sdkmanager --licenses
-        
-        # Create and launch emulator
         cd $ANDROID_HOME/tools
         emulator -avd emulator-34 &
         adb wait-for-device
@@ -43,39 +49,19 @@ definitions:
     - &android_patrol_test
       name: Run Android Patrol Tests
       script: |
-        # Create test results directory
-        TEST_RESULTS_DIR="$FCI_BUILD_DIR/test-results/android"
-        
-        # Run tests with report generation
+        TEST_RESULTS="test-reports/android"
         patrol test -t integration_test/fail_login_test.dart \
           --verbose \
-          --dart-define=allowDebugFeatures=true \
           --reporter junit \
-          --output "$TEST_RESULTS_DIR/reports/test-results.xml"
+          --output "$TEST_RESULTS/xml/test-results.xml"
+        
+        # Generate HTML report
+        echo "<html><head><title>Android Test Report</title></head><body>" > "$TEST_RESULTS/html/report.html"
+        echo "<h1>Android Patrol Test Results</h1>" >> "$TEST_RESULTS/html/report.html"
+        echo "<pre>" >> "$TEST_RESULTS/html/report.html"
+        cat "$TEST_RESULTS/xml/test-results.xml" >> "$TEST_RESULTS/html/report.html"
+        echo "</pre></body></html>" >> "$TEST_RESULTS/html/report.html"
       ignore_failure: false
-
-    - &android_test_report
-      name: Generate Android Test Report
-      script: |
-        if [ -d "$FCI_BUILD_DIR/test-results/android" ]; then
-          echo "Generating Android test report..."
-          
-          # Create HTML report directory
-          mkdir -p $FCI_BUILD_DIR/test-results/android/html
-          
-          # Generate HTML report
-          echo "<html><body>" > $FCI_BUILD_DIR/test-results/android/html/index.html
-          echo "<h1>Android Test Results</h1>" >> $FCI_BUILD_DIR/test-results/android/html/index.html
-          echo "<pre>" >> $FCI_BUILD_DIR/test-results/android/html/index.html
-          cat $FCI_BUILD_DIR/test-results/android/reports/test-results.xml >> $FCI_BUILD_DIR/test-results/android/html/index.html
-          echo "</pre></body></html>" >> $FCI_BUILD_DIR/test-results/android/html/index.html
-          
-          # Generate test summary
-          echo "Test Summary:" > $FCI_BUILD_DIR/test-results/android/summary.txt
-          grep "tests=" $FCI_BUILD_DIR/test-results/android/reports/test-results.xml >> $FCI_BUILD_DIR/test-results/android/summary.txt
-        else
-          echo "No test results found"
-        fi
 
     - &ios_setup
       name: Setup iOS Environment
@@ -93,55 +79,55 @@ definitions:
     - &ios_patrol_test
       name: Run iOS Patrol Tests
       script: |
-        # Create test results directory
-        TEST_RESULTS_DIR="$FCI_BUILD_DIR/test-results/ios"
-        
-        # Run tests with report generation
-         patrol test -t integration_test/fail_login_test.dart  \
+        TEST_RESULTS="test-reports/ios"
+        patrol test -t integration_test/fail_login_test.dart \
+          -d "iPhone 15" \
           --verbose \
-          --device "iPhone 15" \
-          --dart-define=allowDebugFeatures=true \
           --reporter junit \
-          --output "$TEST_RESULTS_DIR/reports/test-results.xml"
+          --output "$TEST_RESULTS/xml/test-results.xml"
+        
+        # Generate HTML report
+        echo "<html><head><title>iOS Test Report</title></head><body>" > "$TEST_RESULTS/html/report.html"
+        echo "<h1>iOS Patrol Test Results</h1>" >> "$TEST_RESULTS/html/report.html"
+        echo "<pre>" >> "$TEST_RESULTS/html/report.html"
+        cat "$TEST_RESULTS/xml/test-results.xml" >> "$TEST_RESULTS/html/report.html"
+        echo "</pre></body></html>" >> "$TEST_RESULTS/html/report.html"
 
-    - &ios_test_report
-      name: Generate iOS Test Report
+    - &generate_test_summary
+      name: Generate Test Summary
       script: |
-        if [ -d "$FCI_BUILD_DIR/test-results/ios" ]; then
-          echo "Generating iOS test report..."
-          
-          # Create HTML report directory
-          mkdir -p $FCI_BUILD_DIR/test-results/ios/html
-          
-          # Generate HTML report
-          echo "<html><body>" > $FCI_BUILD_DIR/test-results/ios/html/index.html
-          echo "<h1>iOS Test Results</h1>" >> $FCI_BUILD_DIR/test-results/ios/html/index.html
-          echo "<pre>" >> $FCI_BUILD_DIR/test-results/ios/html/index.html
-          cat $FCI_BUILD_DIR/test-results/ios/reports/test-results.xml >> $FCI_BUILD_DIR/test-results/ios/html/index.html
-          echo "</pre></body></html>" >> $FCI_BUILD_DIR/test-results/ios/html/index.html
-          
-          # Generate test summary
-          echo "Test Summary:" > $FCI_BUILD_DIR/test-results/ios/summary.txt
-          grep "tests=" $FCI_BUILD_DIR/test-results/ios/reports/test-results.xml >> $FCI_BUILD_DIR/test-results/ios/summary.txt
+        SUMMARY_DIR="test-summary"
+        PLATFORM="${PLATFORM:-unknown}"
+        
+        echo "Test Results Summary for $PLATFORM" > "$SUMMARY_DIR/summary.txt"
+        echo "=================================" >> "$SUMMARY_DIR/summary.txt"
+        echo "Date: $(date)" >> "$SUMMARY_DIR/summary.txt"
+        echo "" >> "$SUMMARY_DIR/summary.txt"
+        
+        if [ -f "test-reports/$PLATFORM/xml/test-results.xml" ]; then
+          echo "Test Results:" >> "$SUMMARY_DIR/summary.txt"
+          grep -E "tests|failures|errors" "test-reports/$PLATFORM/xml/test-results.xml" >> "$SUMMARY_DIR/summary.txt"
         else
-          echo "No test results found"
+          echo "No test results found" >> "$SUMMARY_DIR/summary.txt"
         fi
 
 workflows:
   patrol_android_test:
     name: Android Test Workflow
-    max_build_duration: 120
+    max_build_duration: *duration
     instance_type: linux
-    working_directory: mobile
     environment:
       <<: *env_settings
     scripts:
+      - *setup_report_dirs
       - *install_flutter_dependencies
       - *install_patrol_cli
-      - *setup_test_report_directory
       - *android_setup_emulator
+      - script: |
+          export PLATFORM=android
+          source $FCI_BUILD_DIR/.env
       - *android_patrol_test
-      - *android_test_report
+      - *generate_test_summary
     publishing:
       email:
         recipients: *qa_emails
@@ -149,26 +135,26 @@ workflows:
           success: true
           failure: true
     artifacts:
-          - test-results/android/summary.txt
-          - test-results/android/html/index.html
-          - test-results/android/**/*
-        
+      - test-reports/android/html/report.html
+      - test-summary/summary.txt
 
   patrol_ios_test:
-    name: iOS GoHenry Integration Tests
+    name: iOS Test Workflow
     instance_type: mac_mini_m2
-    max_build_duration: 120
-    working_directory: mobile
+    max_build_duration: *duration
     environment:
       <<: *env_settings
     scripts:
+      - *setup_report_dirs
       - *install_flutter_dependencies
       - *install_patrol_cli
-      - *setup_test_report_directory
       - *ios_setup
       - *ios_simulator_setup
+      - script: |
+          export PLATFORM=ios
+          source $FCI_BUILD_DIR/.env
       - *ios_patrol_test
-      - *ios_test_report
+      - *generate_test_summary
     publishing:
       email:
         recipients: *qa_emails
@@ -176,6 +162,5 @@ workflows:
           success: true
           failure: true
     artifacts:
-          - test-results/ios/summary.txt
-          - test-results/ios/html/index.html
-          - test-results/ios/**/*
+      - test-reports/ios/html/report.html
+      - test-summary/summary.txt
