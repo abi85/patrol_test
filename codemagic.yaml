@@ -7,8 +7,7 @@ definitions:
     - patrol-results/**/*.xml
     - patrol-results/**/*.mp4
     - test-reports/**/*.html
-
-  max_build_duration: &duration 120
+    - build/reports/**
 
   env_settings: &env_settings
     flutter: 3.24.3
@@ -50,10 +49,10 @@ definitions:
         export PLATFORM=android
         TEST_DIR="test-reports/android"
         
-        # Run tests and capture output
+        # Run tests and create report
         TEST_OUTPUT=$(patrol test -t integration_test/fail_login_test.dart --verbose)
+        echo "$TEST_OUTPUT" > "$TEST_DIR/test_output.txt"
         
-        # Generate HTML report
         cat > "$TEST_DIR/html/report.html" << EOF
         <!DOCTYPE html>
         <html>
@@ -74,11 +73,16 @@ definitions:
             </div>
             <div class="content">
                 <h2>Test Output</h2>
-                <pre>$TEST_OUTPUT</pre>
+                <pre>$(cat "$TEST_DIR/test_output.txt")</pre>
             </div>
         </body>
         </html>
         EOF
+
+        # Verify report generation
+        echo "Checking test report..."
+        ls -la $TEST_DIR/html/report.html
+        echo "Report generated successfully"
       ignore_failure: false
 
     - &ios_setup
@@ -100,10 +104,10 @@ definitions:
         export PLATFORM=ios
         TEST_DIR="test-reports/ios"
         
-        # Run tests and capture output
+        # Run tests and create report
         TEST_OUTPUT=$(patrol test -t integration_test/fail_login_test.dart -d "iPhone 15" --verbose)
+        echo "$TEST_OUTPUT" > "$TEST_DIR/test_output.txt"
         
-        # Generate HTML report
         cat > "$TEST_DIR/html/report.html" << EOF
         <!DOCTYPE html>
         <html>
@@ -124,16 +128,30 @@ definitions:
             </div>
             <div class="content">
                 <h2>Test Output</h2>
-                <pre>$TEST_OUTPUT</pre>
+                <pre>$(cat "$TEST_DIR/test_output.txt")</pre>
             </div>
         </body>
         </html>
         EOF
 
+        # Verify report generation
+        echo "Checking test report..."
+        ls -la $TEST_DIR/html/report.html
+        echo "Report generated successfully"
+
+    - &verify_and_prepare_report
+      name: Verify Report Generation
+      script: |
+        echo "Verifying test reports..."
+        platform=${PLATFORM:-unknown}
+        ls -la test-reports/$platform/html/report.html
+        echo "Report contents:"
+        cat test-reports/$platform/html/report.html
+
 workflows:
   patrol_android_test:
     name: Android Test Workflow
-    max_build_duration: *duration
+    max_build_duration: 120
     instance_type: linux
     environment:
       <<: *env_settings
@@ -143,15 +161,19 @@ workflows:
       - *install_patrol_cli
       - *android_setup_emulator
       - *android_patrol_test
+      - *verify_and_prepare_report
     artifacts: *artifacts
     publishing:
       email:
         recipients: *qa_emails
+        notify:
+          success: true
+          failure: true
 
   patrol_ios_test:
     name: iOS Test Workflow
     instance_type: mac_mini_m2
-    max_build_duration: *duration
+    max_build_duration: 120
     environment:
       <<: *env_settings
     scripts:
@@ -161,10 +183,11 @@ workflows:
       - *ios_setup
       - *ios_simulator_setup
       - *ios_patrol_test
+      - *verify_and_prepare_report
     artifacts: *artifacts
     publishing:
       email:
-        notify:
-          failure: true
-          success: true
         recipients: *qa_emails
+        notify:
+          success: true
+          failure: true
