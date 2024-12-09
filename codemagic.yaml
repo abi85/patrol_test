@@ -14,14 +14,6 @@ definitions:
     xcode: latest
     cocoapods: default
 
-  test_triggering: &test_triggering
-  events:
-    - tag
-  branch_patterns:
-    - pattern: '*'
-      include: true
-      source: true
-
   scripts:
     - &install_flutter_dependencies
       name: Get Flutter dependencies
@@ -99,7 +91,6 @@ workflows:
     instance_type: linux
     environment:
       <<: *env_settings
-    triggering: *test_triggering
     scripts:
       - *install_flutter_dependencies
       - *install_patrol_cli
@@ -118,7 +109,6 @@ workflows:
     max_build_duration: *duration
     environment:
       <<: *env_settings
-    triggering: *test_triggering
     scripts:
       - *install_flutter_dependencies
       - *install_patrol_cli
