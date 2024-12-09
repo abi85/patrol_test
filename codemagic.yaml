@@ -6,7 +6,7 @@ definitions:
     - patrol-results/**/*.png
     - patrol-results/**/*.xml
     - patrol-results/**/*.mp4
-     - test-reports/**/*.xml 
+    - test_report/**/*.xml 
 
   max_build_duration: &duration 120
 
@@ -72,7 +72,7 @@ definitions:
       name: Generate Test Report
       script: |
         mkdir -p reports
-        patrol report --output reports/test_report.xml
+        patrol report | tee reports/test_report.xml
         echo "Test report generated at reports/test_report.xml"
 
     - &send_test_results_email
