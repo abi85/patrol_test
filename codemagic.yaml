@@ -112,7 +112,7 @@ definitions:
 
         (
           echo "Subject: Test Results: Patrol Tests"
-          echo "To: baloabby@gmail.com"
+          echo "To:baloabby@gmail.com"
           echo "MIME-Version: 1.0"
           echo "Content-Type: multipart/mixed; boundary=\"boundary123\""
           echo ""
