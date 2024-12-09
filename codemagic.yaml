@@ -78,6 +78,9 @@ definitions:
       name: Email Test Results
       script: |
         echo "Sending test results to QA team..."
+        # Encode the test report to base64
+        base64 reports/test_report.xml > reports/test_report.base64
+        # Construct the email with an attachment (base64 encoded)
         (
           echo "Subject: Test Results: Patrol Tests"
           echo "To: ${qa_emails[@]}"
@@ -93,9 +96,9 @@ definitions:
           echo "Content-Type: application/xml; name=\"test_report.xml\""
           echo "Content-Disposition: attachment; filename=\"test_report.xml\""
           echo "Content-Transfer-Encoding: base64"
-          base64 reports/test_report.xml
+          cat reports/test_report.base64
           echo "--boundary123--"
-        ) | mail -s "Test Results: Patrol Tests" -r "Codemagic CI <ci@example.com>" ${qa_emails[@]}
+        ) | mail -s "Test Results: Patrol Tests" ${qa_emails[@]}
 
 workflows:
   patrol_android_test:
