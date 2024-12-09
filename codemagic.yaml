@@ -78,7 +78,24 @@ definitions:
       name: Email Test Results
       script: |
         echo "Sending test results to QA team..."
-        echo "Test results attached." | mutt -s "Test Results: Patrol Tests" -a reports/test_report.xml -- "${qa_emails[@]}"
+        (
+          echo "Subject: Test Results: Patrol Tests"
+          echo "To: ${qa_emails[@]}"
+          echo "MIME-Version: 1.0"
+          echo "Content-Type: multipart/mixed; boundary=\"boundary123\""
+          echo ""
+          echo "--boundary123"
+          echo "Content-Type: text/plain; charset=\"UTF-8\""
+          echo ""
+          echo "Test results are attached."
+          echo ""
+          echo "--boundary123"
+          echo "Content-Type: application/xml; name=\"test_report.xml\""
+          echo "Content-Disposition: attachment; filename=\"test_report.xml\""
+          echo "Content-Transfer-Encoding: base64"
+          base64 reports/test_report.xml
+          echo "--boundary123--"
+        ) | mail -s "Test Results: Patrol Tests" -r "Codemagic CI <ci@example.com>" ${qa_emails[@]}
 
 workflows:
   patrol_android_test:
