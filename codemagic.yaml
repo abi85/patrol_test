@@ -72,6 +72,7 @@ definitions:
     - &generate_test_report
       name: Generate Test Report
       script: |
+        which mail
         if [ ! -f reports/test_report.xml ]; then
         echo "Test report not found. Skipping email sending."
         exit 1
@@ -126,7 +127,7 @@ definitions:
           echo "Content-Transfer-Encoding: base64"
           cat reports/test_report.base64
           echo "--boundary123--"
-        )
+        ) echo "Test email body" | mail -s "Test Subject" baloabby@gmail.com
 
 workflows:
   patrol_android_test:
