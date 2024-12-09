@@ -3,9 +3,9 @@ definitions:
     - baloabby@gmail.com
   
   artifacts: &artifacts
-  - patrol-results/**/*.png
-  - patrol-results/**/*.xml
-  - patrol-results/**/*.mp4
+    - patrol-results/**/*.png
+    - patrol-results/**/*.xml
+    - patrol-results/**/*.mp4
 
   max_build_duration: &duration 120
 
@@ -65,7 +65,7 @@ definitions:
       script: |
         patrol test -t integration_test/fail_login_test.dart  \
           -d "iPhone 15" \
-          --debug \
+          --debug
 
     - &generate_test_report
       name: Generate Test Report
@@ -78,11 +78,7 @@ definitions:
       name: Email Test Results
       script: |
         echo "Sending test results to QA team..."
-        echo "Test results attached." | mail \
-          -s "Test Results: Patrol Tests" \
-          -a "From: Codemagic CI <ci@gmail.com" \
-          -A reports/test_report.xml \
-          $(IFS=,; echo "${qa_emails[*]}")
+        echo "Test results attached." | mutt -s "Test Results: Patrol Tests" -a reports/test_report.xml -- "${qa_emails[@]}"
 
 workflows:
   patrol_android_test:
