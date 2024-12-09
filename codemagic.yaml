@@ -121,7 +121,6 @@ workflows:
     triggering: *test_triggering
     scripts:
       - *install_flutter_dependencies
-      - *generate_secrets
       - *install_patrol_cli
       - *ios_setup
       - *ios_simulator_setup
