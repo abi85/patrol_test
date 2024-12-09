@@ -66,13 +66,16 @@ definitions:
       script: |
         patrol test -t integration_test/fail_login_test.dart  \
           -d "iPhone 15" \
-          --debug
+          --verbose > reports/test_report.xml
 
     - &generate_test_report
       name: Generate Test Report
       script: |
         mkdir -p reports
-        patrol report | tee reports/test_report.xml
+        if [ ! -f reports/test_report.xml ]; then
+        echo "Test report not found. Skipping email sending."
+        exit 1
+        fi
         echo "Test report generated at reports/test_report.xml"
 
     - &send_test_results_email
