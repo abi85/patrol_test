@@ -81,13 +81,34 @@ definitions:
     - &send_test_results_email
       name: Email Test Results
       script: |
-        if [ ! -s reports/test_report.xml ]; then
-          echo "Test report is empty. Skipping email sending."
+        echo "Sending test results to QA team..."
+
+        # Ensure the test report exists and is not empty
+        if [ ! -f reports/test_report.xml ]; then
+          echo "Test report not found at reports/test_report.xml. Exiting."
           exit 1
         fi
-        echo "Sending test results to QA team..."
+
+        if [ ! -s reports/test_report.xml ]; then
+          echo "Test report is empty. Exiting."
+          exit 1
+        fi
+
+        # Show file details for debugging (size, last modified, etc.)
+        echo "Test report file details:"
+        ls -lh reports/test_report.xml
+
         # Encode the test report to base64
+        echo "Encoding test report..."
         base64 reports/test_report.xml > reports/test_report.base64
+
+        if [ $? -ne 0 ]; then
+          echo "Base64 encoding failed. Exiting."
+          exit 1
+        fi
+
+        echo "Base64 encoding completed successfully."
+
         (
           echo "Subject: Test Results: Patrol Tests"
           echo "To: ${qa_emails[@]}"
