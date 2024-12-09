@@ -164,4 +164,7 @@ workflows:
     artifacts: *artifacts
     publishing:
       email:
+        notify:
+          failure: true
+          success: true
         recipients: *qa_emails
