@@ -79,6 +79,7 @@ definitions:
     - &ios_patrol_test
       name: Run iOS Patrol Tests
       script: |
+        export PLATFORM=ios
         TEST_RESULTS="test-reports/ios"
         patrol test -t integration_test/fail_login_test.dart \
           -d "iPhone 15" \
@@ -123,9 +124,6 @@ workflows:
       - *install_flutter_dependencies
       - *install_patrol_cli
       - *android_setup_emulator
-      - script: |
-          export PLATFORM=android
-          source $FCI_BUILD_DIR/.env
       - *android_patrol_test
       - *generate_test_summary
     publishing:
@@ -150,9 +148,6 @@ workflows:
       - *install_patrol_cli
       - *ios_setup
       - *ios_simulator_setup
-      - script: |
-          export PLATFORM=ios
-          source $FCI_BUILD_DIR/.env
       - *ios_patrol_test
       - *generate_test_summary
     publishing:
