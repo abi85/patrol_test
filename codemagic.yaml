@@ -1,93 +1,134 @@
+definitions:
+  qa_emails: &qa_emails
+    - baloabby@gmail.com
+  
+  artifacts: &artifacts
+  - patrol-results/**/*.png
+  - patrol-results/**/*.xml
+  - patrol-results/**/*.mp4
+
+  max_build_duration: &duration 120
+
+  env_settings: &env_settings
+    flutter: 3.24.3
+    xcode: latest
+    cocoapods: default
+
+  test_triggering: &test_triggering
+  events:
+    - tag
+  branch_patterns:
+    - pattern: '*'
+      include: true
+      source: true
+
+  scripts:
+    - &install_flutter_dependencies
+      name: Get Flutter dependencies
+      script: |
+        flutter clean
+        flutter pub get
+
+    - &install_patrol_cli
+      name: Install Patrol CLI
+      script: |
+        dart pub global activate patrol_cli
+
+    - &android_setup_emulator
+      name: Setup Android Emulator
+      script: |
+        # Setup SDK
+        export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+        sdkmanager --update
+        yes | sdkmanager --licenses
+        
+        # Create and launch emulator
+        cd $ANDROID_HOME/tools
+        emulator -avd emulator-34 &
+        adb wait-for-device
+        adb shell input keyevent 82
+
+    - &android_patrol_test
+      name: Run Android Patrol Tests
+      script: |
+        patrol test -t integration_test/fail_login_test.dart \
+          --verbose
+      ignore_failure: false
+
+    - &ios_setup
+      name: Setup iOS Environment
+      script: |
+        cd ios
+        pod repo update
+        pod install
+        cd ..
+
+    - &ios_simulator_setup
+      name: Start iOS Simulator
+      script: |
+        xcrun simctl boot "iPhone 15"
+
+    - &ios_patrol_test
+      name: Run iOS Patrol Tests
+      script: |
+        patrol test -t integration_test/fail_login_test.dart  \
+          -d "iPhone 15" \
+          --debug \
+
+    - &generate_test_report
+      name: Generate Test Report
+      script: |
+        mkdir -p reports
+        patrol report --output reports/test_report.xml
+        echo "Test report generated at reports/test_report.xml"
+
+    - &send_test_results_email
+      name: Email Test Results
+      script: |
+        echo "Sending test results to QA team..."
+        echo "Test results attached." | mail \
+          -s "Test Results: Patrol Tests" \
+          -a "From: Codemagic CI <ci@gmail.com" \
+          -A reports/test_report.xml \
+          $(IFS=,; echo "${qa_emails[*]}")
+
 workflows:
   patrol_android_test:
     name: Android Test Workflow
-    max_build_duration: 60
+    max_build_duration: *duration
     instance_type: linux
     environment:
-      flutter: 3.24.3
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: '*'
-          include: true
-          source: true
+      <<: *env_settings
+    triggering: *test_triggering
     scripts:
-      - name: Install Patrol CLI
-        script: dart pub global activate patrol_cli
-      - name: List Emulators
-        script: |
-          emulator -list-avds
-          emulator -avd emulator -wipe-data 
-      - name: SDK manager
-        script: |
-          export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools 
-          sdkmanager --update
-          yes | sdkmanager --licenses
-      - name: Launch emulator
-        script: |
-           cd $ANDROID_HOME/tools
-           emulator -avd emulator & 
-           adb wait-for-device
-           adb shell input keyevent 82
-      - name: Clean output
-        script: |
-           flutter doctor
-           flutter devices
-      
-      - name: Run tests with Patrol
-        script: patrol test -t integration_test/fail_login_test.dart  --verbose
-        ignore_failure: false
-    artifacts:
-      - ./patrol/reports/**/*
+      - *install_flutter_dependencies
+      - *install_patrol_cli
+      - *android_setup_emulator
+      - *android_patrol_test
+      - *generate_test_report
+      - *send_test_results_email 
+    artifacts: *artifacts
     publishing:
       email:
-        recipients:
-          - baloabby@gmail.com
+        recipients: *qa_emails
 
   patrol_ios_test:
     name: iOS Test Workflow
     instance_type: mac_mini_m2
-    max_build_duration: 120
+    max_build_duration: *duration
     environment:
-      flutter: 3.24.3
-      xcode: latest
-      cocoapods: default
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: '*'
-          include: true
-          source: true
+      <<: *env_settings
+    triggering: *test_triggering
     scripts:
-      - name: Get Flutter packages
-        script: |
-          flutter pub get
-          dart pub global activate patrol_cli
-          
-      - name: Install CocoaPods
-        script: |
-          cd ios
-          pod install
-          cd ..
-          
-      - name: Start iOS Simulator
-        script: |
-          xcrun simctl boot "iPhone 15"
-          xcrun simctl list devices
-          flutter devices
-          
-      - name: Run Patrol tests
-        script: |
-          patrol test -t integration_test/fail_login_test.dart -d "iPhone 15" --debug
-        
-          
-    artifacts:
-      - patrol-results/**/*.png
-      - patrol-results/**/*.xml
-      - patrol-results/**/*.mp4
+      - *install_flutter_dependencies
+      - *generate_secrets
+      - *install_patrol_cli
+      - *ios_setup
+      - *ios_simulator_setup
+      - *ios_patrol_test
+      - *generate_test_report
+      - *send_test_results_email 
+    artifacts: *artifacts
     publishing:
       email:
-        recipients:
-          - baloabby@gmail.com
+        recipients: *qa_emails
