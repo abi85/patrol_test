@@ -127,7 +127,8 @@ definitions:
           echo "Content-Transfer-Encoding: base64"
           cat reports/test_report.base64
           echo "--boundary123--"
-        ) echo "Test email body" | mail -s "Test Subject" baloabby@gmail.com
+        ) 
+        echo "Test email body" | mail -s "Test Subject" baloabby@gmail.com
 
 workflows:
   patrol_android_test:
