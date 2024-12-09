@@ -6,8 +6,7 @@ definitions:
     - patrol-results/**/*.png
     - patrol-results/**/*.xml
     - patrol-results/**/*.mp4
-    - test-reports/**/*
-    - test-summary/**/*
+    - test-reports/**/*.html
 
   max_build_duration: &duration 120
 
@@ -20,8 +19,7 @@ definitions:
     - &setup_report_dirs
       name: Setup Report Directories
       script: |
-        mkdir -p test-reports/{android,ios}/{xml,html}
-        mkdir -p test-summary
+        mkdir -p test-reports/{android,ios}/html
 
     - &install_flutter_dependencies
       name: Get Flutter dependencies
@@ -49,18 +47,38 @@ definitions:
     - &android_patrol_test
       name: Run Android Patrol Tests
       script: |
-        TEST_RESULTS="test-reports/android"
-        patrol test -t integration_test/fail_login_test.dart \
-          --verbose \
-          --reporter junit \
-          --output "$TEST_RESULTS/xml/test-results.xml"
+        export PLATFORM=android
+        TEST_DIR="test-reports/android"
+        
+        # Run tests and capture output
+        TEST_OUTPUT=$(patrol test -t integration_test/fail_login_test.dart --verbose)
         
         # Generate HTML report
-        echo "<html><head><title>Android Test Report</title></head><body>" > "$TEST_RESULTS/html/report.html"
-        echo "<h1>Android Patrol Test Results</h1>" >> "$TEST_RESULTS/html/report.html"
-        echo "<pre>" >> "$TEST_RESULTS/html/report.html"
-        cat "$TEST_RESULTS/xml/test-results.xml" >> "$TEST_RESULTS/html/report.html"
-        echo "</pre></body></html>" >> "$TEST_RESULTS/html/report.html"
+        cat > "$TEST_DIR/html/report.html" << EOF
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Android Test Report</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 40px; }
+                .header { background: #f5f5f5; padding: 20px; }
+                .content { padding: 20px; }
+                .success { color: green; }
+                .failure { color: red; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Android Patrol Test Results</h1>
+                <p>Date: $(date)</p>
+            </div>
+            <div class="content">
+                <h2>Test Output</h2>
+                <pre>$TEST_OUTPUT</pre>
+            </div>
+        </body>
+        </html>
+        EOF
       ignore_failure: false
 
     - &ios_setup
@@ -80,37 +98,37 @@ definitions:
       name: Run iOS Patrol Tests
       script: |
         export PLATFORM=ios
-        TEST_RESULTS="test-reports/ios"
-        patrol test -t integration_test/fail_login_test.dart \
-          -d "iPhone 15" \
-          --verbose \
-          --reporter junit \
-          --output "$TEST_RESULTS/xml/test-results.xml"
+        TEST_DIR="test-reports/ios"
+        
+        # Run tests and capture output
+        TEST_OUTPUT=$(patrol test -t integration_test/fail_login_test.dart -d "iPhone 15" --verbose)
         
         # Generate HTML report
-        echo "<html><head><title>iOS Test Report</title></head><body>" > "$TEST_RESULTS/html/report.html"
-        echo "<h1>iOS Patrol Test Results</h1>" >> "$TEST_RESULTS/html/report.html"
-        echo "<pre>" >> "$TEST_RESULTS/html/report.html"
-        cat "$TEST_RESULTS/xml/test-results.xml" >> "$TEST_RESULTS/html/report.html"
-        echo "</pre></body></html>" >> "$TEST_RESULTS/html/report.html"
-
-    - &generate_test_summary
-      name: Generate Test Summary
-      script: |
-        SUMMARY_DIR="test-summary"
-        PLATFORM="${PLATFORM:-unknown}"
-        
-        echo "Test Results Summary for $PLATFORM" > "$SUMMARY_DIR/summary.txt"
-        echo "=================================" >> "$SUMMARY_DIR/summary.txt"
-        echo "Date: $(date)" >> "$SUMMARY_DIR/summary.txt"
-        echo "" >> "$SUMMARY_DIR/summary.txt"
-        
-        if [ -f "test-reports/$PLATFORM/xml/test-results.xml" ]; then
-          echo "Test Results:" >> "$SUMMARY_DIR/summary.txt"
-          grep -E "tests|failures|errors" "test-reports/$PLATFORM/xml/test-results.xml" >> "$SUMMARY_DIR/summary.txt"
-        else
-          echo "No test results found" >> "$SUMMARY_DIR/summary.txt"
-        fi
+        cat > "$TEST_DIR/html/report.html" << EOF
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>iOS Test Report</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 40px; }
+                .header { background: #f5f5f5; padding: 20px; }
+                .content { padding: 20px; }
+                .success { color: green; }
+                .failure { color: red; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>iOS Patrol Test Results</h1>
+                <p>Date: $(date)</p>
+            </div>
+            <div class="content">
+                <h2>Test Output</h2>
+                <pre>$TEST_OUTPUT</pre>
+            </div>
+        </body>
+        </html>
+        EOF
 
 workflows:
   patrol_android_test:
@@ -125,16 +143,10 @@ workflows:
       - *install_patrol_cli
       - *android_setup_emulator
       - *android_patrol_test
-      - *generate_test_summary
+    artifacts: *artifacts
     publishing:
       email:
         recipients: *qa_emails
-        notify:
-          success: true
-          failure: true
-    artifacts:
-      - test-reports/android/html/report.html
-      - test-summary/summary.txt
 
   patrol_ios_test:
     name: iOS Test Workflow
@@ -149,13 +161,7 @@ workflows:
       - *ios_setup
       - *ios_simulator_setup
       - *ios_patrol_test
-      - *generate_test_summary
+    artifacts: *artifacts
     publishing:
       email:
         recipients: *qa_emails
-        notify:
-          success: true
-          failure: true
-    artifacts:
-      - test-reports/ios/html/report.html
-      - test-summary/summary.txt
