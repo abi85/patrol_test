@@ -64,6 +64,7 @@ definitions:
     - &ios_patrol_test
       name: Run iOS Patrol Tests
       script: |
+        mkdir -p reports
         patrol test -t integration_test/fail_login_test.dart  \
           -d "iPhone 15" \
           --verbose > reports/test_report.xml
@@ -71,7 +72,6 @@ definitions:
     - &generate_test_report
       name: Generate Test Report
       script: |
-        mkdir -p reports
         if [ ! -f reports/test_report.xml ]; then
         echo "Test report not found. Skipping email sending."
         exit 1
