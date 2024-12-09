@@ -1,14 +1,6 @@
 definitions:
   qa_emails: &qa_emails
     - baloabby@gmail.com
-  
-  artifacts: &artifacts
-    - patrol-results/**/*.png
-    - patrol-results/**/*.xml
-    - patrol-results/**/*.mp4
-    - test_report/**/*.xml 
-
-  max_build_duration: &duration 120
 
   env_settings: &env_settings
     flutter: 3.24.3
@@ -27,6 +19,13 @@ definitions:
       script: |
         dart pub global activate patrol_cli 3.4.0
 
+        
+    - &setup_test_report_directory
+      name: Setup Test Report Directory
+      script: |
+        mkdir -p $FCI_BUILD_DIR/test-results/{android,ios}/{reports,screenshots}
+
+
     - &android_setup_emulator
       name: Setup Android Emulator
       script: |
@@ -44,9 +43,39 @@ definitions:
     - &android_patrol_test
       name: Run Android Patrol Tests
       script: |
+        # Create test results directory
+        TEST_RESULTS_DIR="$FCI_BUILD_DIR/test-results/android"
+        
+        # Run tests with report generation
         patrol test -t integration_test/fail_login_test.dart \
-          --verbose
+          --verbose \
+          --dart-define=allowDebugFeatures=true \
+          --reporter junit \
+          --output "$TEST_RESULTS_DIR/reports/test-results.xml"
       ignore_failure: false
+
+    - &android_test_report
+      name: Generate Android Test Report
+      script: |
+        if [ -d "$FCI_BUILD_DIR/test-results/android" ]; then
+          echo "Generating Android test report..."
+          
+          # Create HTML report directory
+          mkdir -p $FCI_BUILD_DIR/test-results/android/html
+          
+          # Generate HTML report
+          echo "<html><body>" > $FCI_BUILD_DIR/test-results/android/html/index.html
+          echo "<h1>Android Test Results</h1>" >> $FCI_BUILD_DIR/test-results/android/html/index.html
+          echo "<pre>" >> $FCI_BUILD_DIR/test-results/android/html/index.html
+          cat $FCI_BUILD_DIR/test-results/android/reports/test-results.xml >> $FCI_BUILD_DIR/test-results/android/html/index.html
+          echo "</pre></body></html>" >> $FCI_BUILD_DIR/test-results/android/html/index.html
+          
+          # Generate test summary
+          echo "Test Summary:" > $FCI_BUILD_DIR/test-results/android/summary.txt
+          grep "tests=" $FCI_BUILD_DIR/test-results/android/reports/test-results.xml >> $FCI_BUILD_DIR/test-results/android/summary.txt
+        else
+          echo "No test results found"
+        fi
 
     - &ios_setup
       name: Setup iOS Environment
@@ -64,106 +93,89 @@ definitions:
     - &ios_patrol_test
       name: Run iOS Patrol Tests
       script: |
-        mkdir -p reports
-        patrol test -t integration_test/fail_login_test.dart  \
-          -d "iPhone 15" \
-          --verbose > reports/test_report.xml
+        # Create test results directory
+        TEST_RESULTS_DIR="$FCI_BUILD_DIR/test-results/ios"
+        
+        # Run tests with report generation
+         patrol test -t integration_test/fail_login_test.dart  \
+          --verbose \
+          --device "iPhone 15" \
+          --dart-define=allowDebugFeatures=true \
+          --reporter junit \
+          --output "$TEST_RESULTS_DIR/reports/test-results.xml"
 
-    - &generate_test_report
-      name: Generate Test Report
+    - &ios_test_report
+      name: Generate iOS Test Report
       script: |
-        which mail
-        if [ ! -f reports/test_report.xml ]; then
-        echo "Test report not found. Skipping email sending."
-        exit 1
+        if [ -d "$FCI_BUILD_DIR/test-results/ios" ]; then
+          echo "Generating iOS test report..."
+          
+          # Create HTML report directory
+          mkdir -p $FCI_BUILD_DIR/test-results/ios/html
+          
+          # Generate HTML report
+          echo "<html><body>" > $FCI_BUILD_DIR/test-results/ios/html/index.html
+          echo "<h1>iOS Test Results</h1>" >> $FCI_BUILD_DIR/test-results/ios/html/index.html
+          echo "<pre>" >> $FCI_BUILD_DIR/test-results/ios/html/index.html
+          cat $FCI_BUILD_DIR/test-results/ios/reports/test-results.xml >> $FCI_BUILD_DIR/test-results/ios/html/index.html
+          echo "</pre></body></html>" >> $FCI_BUILD_DIR/test-results/ios/html/index.html
+          
+          # Generate test summary
+          echo "Test Summary:" > $FCI_BUILD_DIR/test-results/ios/summary.txt
+          grep "tests=" $FCI_BUILD_DIR/test-results/ios/reports/test-results.xml >> $FCI_BUILD_DIR/test-results/ios/summary.txt
+        else
+          echo "No test results found"
         fi
-        echo "Test report generated at reports/test_report.xml"
-
-    - &send_test_results_email
-      name: Email Test Results
-      script: |
-        echo "Sending test results to QA team..."
-
-        # Ensure the test report exists and is not empty
-        if [ ! -f reports/test_report.xml ]; then
-          echo "Test report not found at reports/test_report.xml. Exiting."
-          exit 1
-        fi
-
-        if [ ! -s reports/test_report.xml ]; then
-          echo "Test report is empty. Exiting."
-          exit 1
-        fi
-
-        # Show file details for debugging (size, last modified, etc.)
-        echo "Test report file details:"
-        ls -lh reports/test_report.xml
-
-        # Encode the test report to base64
-        echo "Encoding test report..."
-        base64 -i reports/test_report.xml > reports/test_report.base64
-
-        if [ $? -ne 0 ]; then
-          echo "Base64 encoding failed. Exiting."
-          exit 1
-        fi
-
-        echo "Base64 encoding completed successfully."
-
-        (
-          echo "Subject: Test Results: Patrol Tests"
-          echo "To:baloabby@gmail.com"
-          echo "MIME-Version: 1.0"
-          echo "Content-Type: multipart/mixed; boundary=\"boundary123\""
-          echo ""
-          echo "--boundary123"
-          echo "Content-Type: text/plain; charset=\"UTF-8\""
-          echo ""
-          echo "Test results are attached."
-          echo ""
-          echo "--boundary123"
-          echo "Content-Type: application/xml; name=\"test_report.xml\""
-          echo "Content-Disposition: attachment; filename=\"test_report.xml\""
-          echo "Content-Transfer-Encoding: base64"
-          cat reports/test_report.base64
-          echo "--boundary123--"
-        ) 
-        echo "Test email body" | mail -s "Test Subject" baloabby@gmail.com
 
 workflows:
   patrol_android_test:
     name: Android Test Workflow
-    max_build_duration: *duration
+    max_build_duration: 120
     instance_type: linux
+    working_directory: mobile
     environment:
       <<: *env_settings
     scripts:
       - *install_flutter_dependencies
       - *install_patrol_cli
+      - *setup_test_report_directory
       - *android_setup_emulator
       - *android_patrol_test
-      - *generate_test_report
-      - *send_test_results_email 
-    artifacts: *artifacts
+      - *android_test_report
     publishing:
       email:
         recipients: *qa_emails
+        notify:
+          success: true
+          failure: true
+    artifacts:
+          - test-results/android/summary.txt
+          - test-results/android/html/index.html
+          - test-results/android/**/*
+        
 
   patrol_ios_test:
-    name: iOS Test Workflow
+    name: iOS GoHenry Integration Tests
     instance_type: mac_mini_m2
-    max_build_duration: *duration
+    max_build_duration: 120
+    working_directory: mobile
     environment:
       <<: *env_settings
     scripts:
       - *install_flutter_dependencies
       - *install_patrol_cli
+      - *setup_test_report_directory
       - *ios_setup
       - *ios_simulator_setup
       - *ios_patrol_test
-      - *generate_test_report
-      - *send_test_results_email 
-    artifacts: *artifacts
+      - *ios_test_report
     publishing:
       email:
         recipients: *qa_emails
+        notify:
+          success: true
+          failure: true
+    artifacts:
+          - test-results/ios/summary.txt
+          - test-results/ios/html/index.html
+          - test-results/ios/**/*
