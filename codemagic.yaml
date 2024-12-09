@@ -160,6 +160,8 @@ workflows:
     instance_type: linux
     environment:
       <<: *env_settings
+      vars:
+        PLATFORM: android
     scripts:
       - *setup_report_dirs
       - *install_flutter_dependencies
@@ -181,6 +183,8 @@ workflows:
     max_build_duration: 120
     environment:
       <<: *env_settings
+      vars:
+        PLATFORM: ios
     scripts:
       - *setup_report_dirs
       - *install_flutter_dependencies
