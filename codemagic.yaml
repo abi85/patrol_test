@@ -142,11 +142,16 @@ definitions:
     - &verify_and_prepare_report
       name: Verify Report Generation
       script: |
-        echo "Verifying test reports..."
-        platform=${PLATFORM:-unknown}
-        ls -la test-reports/$platform/html/report.html
-        echo "Report contents:"
-        cat test-reports/$platform/html/report.html
+        if [ "$PLATFORM" = "android" ]; then
+          ls -la test-reports/android/html/report.html
+          cat test-reports/android/html/report.html
+        elif [ "$PLATFORM" = "ios" ]; then
+          ls -la test-reports/ios/html/report.html
+          cat test-reports/ios/html/report.html
+        else
+          echo "Platform not set correctly"
+          exit 1
+        fi
 
 workflows:
   patrol_android_test:
