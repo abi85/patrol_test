@@ -100,7 +100,7 @@ definitions:
 
         # Encode the test report to base64
         echo "Encoding test report..."
-        base64 reports/test_report.xml > reports/test_report.base64
+        base64 -i reports/test_report.xml > reports/test_report.base64
 
         if [ $? -ne 0 ]; then
           echo "Base64 encoding failed. Exiting."
