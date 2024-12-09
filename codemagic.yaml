@@ -81,6 +81,10 @@ definitions:
     - &send_test_results_email
       name: Email Test Results
       script: |
+        if [ ! -s reports/test_report.xml ]; then
+          echo "Test report is empty. Skipping email sending."
+          exit 1
+        fi
         echo "Sending test results to QA team..."
         # Encode the test report to base64
         base64 reports/test_report.xml > reports/test_report.base64
