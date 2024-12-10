@@ -197,7 +197,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - baloabby@gmail.com
+          - baloabby@gmail.com #Your email address
         notify:
           success: true # To not receive a notification when a build succeeds
-          failure: true # To not receive a notification when a build fails
+          failure: true
