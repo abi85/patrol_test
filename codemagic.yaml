@@ -196,7 +196,8 @@ workflows:
     artifacts: *artifacts
     publishing:
       email:
-        recipients: *qa_emails
+        recipients:
+          - baloabby@gmail.com
         notify:
-          success: true
-          failure: true
+          success: true # To not receive a notification when a build succeeds
+          failure: true # To not receive a notification when a build fails
