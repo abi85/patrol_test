@@ -6,7 +6,8 @@ definitions:
     - patrol-results/**/*.png
     - patrol-results/**/*.xml
     - patrol-results/**/*.mp4
-    - reports/**/*.txt  # Added .txt artifacts for the reports
+    - test_report/**/*.xml
+    - reports/**/*.txt
 
   max_build_duration: &duration 120
 
@@ -81,9 +82,9 @@ definitions:
       name: Generate Test Report
       script: |
         which mail
-        if [ ! -f reports/test_report.txt ]; then
-          echo "Test report not found. Skipping email sending."
-          exit 1
+        if [ ! -f reports/test_report.xml ]; then
+        echo "Test report not found. Skipping email sending."
+        exit 1
         fi
         echo "Test report generated at reports/test_report.txt"
 
@@ -145,8 +146,7 @@ workflows:
       - *android_patrol_test
       - *generate_test_report
       - *send_test_results_email 
-    artifacts: 
-      - *artifacts  # Include all artifacts, including .txt reports
+    artifacts: *artifacts
     publishing:
       email:
         recipients: *qa_emails
@@ -165,12 +165,11 @@ workflows:
       - *ios_patrol_test
       - *generate_test_report
       - *send_test_results_email 
-    artifacts:
-      - *artifacts  # Include all artifacts, including .txt reports
+    artifacts: *artifacts
     publishing:
       slack:
         channel: '#codemagic'
-        notify_on_build_start: true
+        notify_on_build_start: true # To receive a notification when a build starts
         notify:
-          success: true
-          failure: true
+          success: true # To not receive a notification when a build succeeds
+          failure: true # To not receive a notification when a build fails
