@@ -6,7 +6,7 @@ definitions:
     - patrol-results/**/*.png
     - patrol-results/**/*.xml
     - patrol-results/**/*.mp4
-    - test_report/**/*.xml 
+    - reports/**/*.txt
 
   max_build_duration: &duration 120
 
@@ -44,8 +44,13 @@ definitions:
     - &android_patrol_test
       name: Run Android Patrol Tests
       script: |
-        patrol test -t integration_test/fail_login_test.dart \
-          --verbose
+        mkdir -p reports
+        TEST_OUTPUT=$(patrol test -t integration_test/fail_login_test.dart --verbose)
+        echo "Android Test Results - $(date)" > reports/test_report.txt
+        echo "----------------------------------------" >> reports/test_report.txt
+        echo "$TEST_OUTPUT" >> reports/test_report.txt
+        echo "----------------------------------------" >> reports/test_report.txt
+        echo "Test Completed at: $(date)" >> reports/test_report.txt
       ignore_failure: false
 
     - &ios_setup
@@ -65,19 +70,22 @@ definitions:
       name: Run iOS Patrol Tests
       script: |
         mkdir -p reports
-        patrol test -t integration_test/fail_login_test.dart  \
-          -d "iPhone 15" \
-          --verbose > reports/test_report.xml
+        TEST_OUTPUT=$(patrol test -t integration_test/fail_login_test.dart -d "iPhone 15" --verbose)
+        echo "iOS Test Results - $(date)" > reports/test_report.txt
+        echo "----------------------------------------" >> reports/test_report.txt
+        echo "$TEST_OUTPUT" >> reports/test_report.txt
+        echo "----------------------------------------" >> reports/test_report.txt
+        echo "Test Completed at: $(date)" >> reports/test_report.txt
 
     - &generate_test_report
       name: Generate Test Report
       script: |
         which mail
-        if [ ! -f reports/test_report.xml ]; then
-        echo "Test report not found. Skipping email sending."
-        exit 1
+        if [ ! -f reports/test_report.txt ]; then
+          echo "Test report not found. Skipping email sending."
+          exit 1
         fi
-        echo "Test report generated at reports/test_report.xml"
+        echo "Test report generated at reports/test_report.txt"
 
     - &send_test_results_email
       name: Email Test Results
@@ -85,50 +93,43 @@ definitions:
         echo "Sending test results to QA team..."
 
         # Ensure the test report exists and is not empty
-        if [ ! -f reports/test_report.xml ]; then
-          echo "Test report not found at reports/test_report.xml. Exiting."
+        if [ ! -f reports/test_report.txt ]; then
+          echo "Test report not found at reports/test_report.txt. Exiting."
           exit 1
         fi
 
-        if [ ! -s reports/test_report.xml ]; then
+        if [ ! -s reports/test_report.txt ]; then
           echo "Test report is empty. Exiting."
           exit 1
         fi
 
-        # Show file details for debugging (size, last modified, etc.)
+        # Show file details for debugging
         echo "Test report file details:"
-        ls -lh reports/test_report.xml
+        ls -lh reports/test_report.txt
 
-        # Encode the test report to base64
-        echo "Encoding test report..."
-        base64 -i reports/test_report.xml > reports/test_report.base64
-
-        if [ $? -ne 0 ]; then
-          echo "Base64 encoding failed. Exiting."
-          exit 1
-        fi
-
-        echo "Base64 encoding completed successfully."
-
+        # Create email with the test report content
         (
           echo "Subject: Test Results: Patrol Tests"
-          echo "To:baloabby@gmail.com"
+          echo "To: baloabby@gmail.com"
           echo "MIME-Version: 1.0"
           echo "Content-Type: multipart/mixed; boundary=\"boundary123\""
           echo ""
           echo "--boundary123"
           echo "Content-Type: text/plain; charset=\"UTF-8\""
           echo ""
-          echo "Test results are attached."
+          echo "Please find the test results attached."
           echo ""
           echo "--boundary123"
-          echo "Content-Type: application/xml; name=\"test_report.xml\""
-          echo "Content-Disposition: attachment; filename=\"test_report.xml\""
+          echo "Content-Type: text/plain; name=\"test_report.txt\""
+          echo "Content-Disposition: attachment; filename=\"test_report.txt\""
           echo "Content-Transfer-Encoding: base64"
-          cat reports/test_report.base64
+          echo ""
+          base64 reports/test_report.txt
+          echo ""
           echo "--boundary123--"
-        ) 
-        echo "Test email body" | mail -s "Test Subject" baloabby@gmail.com
+        ) | sendmail -t
+
+        echo "Email sent successfully with test report attached."
 
 workflows:
   patrol_android_test:
@@ -167,7 +168,7 @@ workflows:
     publishing:
       slack:
         channel: '#codemagic'
-        notify_on_build_start: true # To receive a notification when a build starts
+        notify_on_build_start: true
         notify:
-          success: true # To not receive a notification when a build succeeds
-          failure: true # To not receive a notification when a build fails
+          success: true
+          failure: true
