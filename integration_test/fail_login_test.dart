@@ -7,7 +7,7 @@ void main() {
     await Future<void>.delayed(const Duration(seconds: 3));
     await $(#email_field).enterText('testuser@gmail.com');
     await $(#password_field).enterText('password');
-    await $(#login_btns).tap();
+    await $(#login_btn).tap();
 
     await $(#invalid_login)
         .waitUntilVisible(timeout: const Duration(seconds: 2));
