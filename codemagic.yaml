@@ -6,8 +6,9 @@ definitions:
     - patrol-results/**/*.png
     - patrol-results/**/*.xml
     - patrol-results/**/*.mp4
-    - test-reports/**/*.html
-    - build/reports/**
+    - test_report/**/*.xml 
+
+  max_build_duration: &duration 120
 
   env_settings: &env_settings
     flutter: 3.24.3
@@ -15,11 +16,6 @@ definitions:
     cocoapods: default
 
   scripts:
-    - &setup_report_dirs
-      name: Setup Report Directories
-      script: |
-        mkdir -p test-reports/{android,ios}/html
-
     - &install_flutter_dependencies
       name: Get Flutter dependencies
       script: |
@@ -30,14 +26,16 @@ definitions:
       name: Install Patrol CLI
       script: |
         dart pub global activate patrol_cli 3.4.0
-        export PATH="$PATH:$HOME/.pub-cache/bin"
 
     - &android_setup_emulator
       name: Setup Android Emulator
       script: |
+        # Setup SDK
         export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
         sdkmanager --update
         yes | sdkmanager --licenses
+        
+        # Create and launch emulator
         cd $ANDROID_HOME/tools
         emulator -avd emulator-34 &
         adb wait-for-device
@@ -46,43 +44,8 @@ definitions:
     - &android_patrol_test
       name: Run Android Patrol Tests
       script: |
-        export PLATFORM=android
-        TEST_DIR="test-reports/android"
-        
-        # Run tests and create report
-        TEST_OUTPUT=$(patrol test -t integration_test/fail_login_test.dart --verbose)
-        echo "$TEST_OUTPUT" > "$TEST_DIR/test_output.txt"
-        
-        cat > "$TEST_DIR/html/report.html" << EOF
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Android Test Report</title>
-            <style>
-                body { font-family: Arial, sans-serif; margin: 40px; }
-                .header { background: #f5f5f5; padding: 20px; }
-                .content { padding: 20px; }
-                .success { color: green; }
-                .failure { color: red; }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <h1>Android Patrol Test Results</h1>
-                <p>Date: $(date)</p>
-            </div>
-            <div class="content">
-                <h2>Test Output</h2>
-                <pre>$(cat "$TEST_DIR/test_output.txt")</pre>
-            </div>
-        </body>
-        </html>
-        EOF
-
-        # Verify report generation
-        echo "Checking test report..."
-        ls -la $TEST_DIR/html/report.html
-        echo "Report generated successfully"
+        patrol test -t integration_test/fail_login_test.dart \
+          --verbose
       ignore_failure: false
 
     - &ios_setup
@@ -101,103 +64,106 @@ definitions:
     - &ios_patrol_test
       name: Run iOS Patrol Tests
       script: |
-        export PLATFORM=ios
-        TEST_DIR="test-reports/ios"
-        
-        # Run tests and create report
-        TEST_OUTPUT=$(patrol test -t integration_test/fail_logins_test.dart -d "iPhone 15" --verbose)
-        echo "$TEST_OUTPUT" > "$TEST_DIR/test_output.txt"
-        
-        cat > "$TEST_DIR/html/report.html" << EOF
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>iOS Test Report</title>
-            <style>
-                body { font-family: Arial, sans-serif; margin: 40px; }
-                .header { background: #f5f5f5; padding: 20px; }
-                .content { padding: 20px; }
-                .success { color: green; }
-                .failure { color: red; }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <h1>iOS Patrol Test Results</h1>
-                <p>Date: $(date)</p>
-            </div>
-            <div class="content">
-                <h2>Test Output</h2>
-                <pre>$(cat "$TEST_DIR/test_output.txt")</pre>
-            </div>
-        </body>
-        </html>
-        EOF
+        mkdir -p reports
+        patrol test -t integration_test/fail_login_test.dart  \
+          -d "iPhone 15" \
+          --verbose > reports/test_report.xml
 
-        # Verify report generation
-        echo "Checking test report..."
-        ls -la $TEST_DIR/html/report.html
-        echo "Report generated successfully"
-
-    - &verify_and_prepare_report
-      name: Verify Report Generation
+    - &generate_test_report
+      name: Generate Test Report
       script: |
-        if [ "$PLATFORM" = "android" ]; then
-          ls -la test-reports/android/html/report.html
-          cat test-reports/android/html/report.html
-        elif [ "$PLATFORM" = "ios" ]; then
-          ls -la test-reports/ios/html/report.html
-          cat test-reports/ios/html/report.html
-        else
-          echo "Platform not set correctly"
+        which mail
+        if [ ! -f reports/test_report.xml ]; then
+        echo "Test report not found. Skipping email sending."
+        exit 1
+        fi
+        echo "Test report generated at reports/test_report.xml"
+
+    - &send_test_results_email
+      name: Email Test Results
+      script: |
+        echo "Sending test results to QA team..."
+
+        # Ensure the test report exists and is not empty
+        if [ ! -f reports/test_report.xml ]; then
+          echo "Test report not found at reports/test_report.xml. Exiting."
           exit 1
         fi
+
+        if [ ! -s reports/test_report.xml ]; then
+          echo "Test report is empty. Exiting."
+          exit 1
+        fi
+
+        # Show file details for debugging (size, last modified, etc.)
+        echo "Test report file details:"
+        ls -lh reports/test_report.xml
+
+        # Encode the test report to base64
+        echo "Encoding test report..."
+        base64 -i reports/test_report.xml > reports/test_report.base64
+
+        if [ $? -ne 0 ]; then
+          echo "Base64 encoding failed. Exiting."
+          exit 1
+        fi
+
+        echo "Base64 encoding completed successfully."
+
+        (
+          echo "Subject: Test Results: Patrol Tests"
+          echo "To:baloabby@gmail.com"
+          echo "MIME-Version: 1.0"
+          echo "Content-Type: multipart/mixed; boundary=\"boundary123\""
+          echo ""
+          echo "--boundary123"
+          echo "Content-Type: text/plain; charset=\"UTF-8\""
+          echo ""
+          echo "Test results are attached."
+          echo ""
+          echo "--boundary123"
+          echo "Content-Type: application/xml; name=\"test_report.xml\""
+          echo "Content-Disposition: attachment; filename=\"test_report.xml\""
+          echo "Content-Transfer-Encoding: base64"
+          cat reports/test_report.base64
+          echo "--boundary123--"
+        ) 
+        echo "Test email body" | mail -s "Test Subject" baloabby@gmail.com
 
 workflows:
   patrol_android_test:
     name: Android Test Workflow
-    max_build_duration: 120
+    max_build_duration: *duration
     instance_type: linux
     environment:
       <<: *env_settings
-      vars:
-        PLATFORM: android
     scripts:
-      - *setup_report_dirs
       - *install_flutter_dependencies
       - *install_patrol_cli
       - *android_setup_emulator
       - *android_patrol_test
-      - *verify_and_prepare_report
+      - *generate_test_report
+      - *send_test_results_email 
     artifacts: *artifacts
     publishing:
       email:
         recipients: *qa_emails
-        notify:
-          success: true
-          failure: true
 
   patrol_ios_test:
     name: iOS Test Workflow
     instance_type: mac_mini_m2
-    max_build_duration: 120
+    max_build_duration: *duration
     environment:
       <<: *env_settings
-      vars:
-        PLATFORM: ios
     scripts:
-      - *setup_report_dirs
       - *install_flutter_dependencies
       - *install_patrol_cli
       - *ios_setup
       - *ios_simulator_setup
       - *ios_patrol_test
-      - *verify_and_prepare_report
+      - *generate_test_report
+      - *send_test_results_email 
     artifacts: *artifacts
     publishing:
-      slack:
-        channel: '#codemagic'
-        notify_on_build_start: true # To receive a notification when a build starts
-        notify:
-          success: true # To not receive a notification when a build succeeds
-          failure: true # To not receive a notification when a build fails
+      email:
+        recipients: *qa_emails
