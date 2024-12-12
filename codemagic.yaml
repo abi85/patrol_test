@@ -105,7 +105,7 @@ definitions:
         TEST_DIR="test-reports/ios"
         
         # Run tests and create report
-        TEST_OUTPUT=$(patrol test -t integration_test/fail_login_test.dart -d "iPhone 15" --verbose)
+        TEST_OUTPUT=$(patrol test -t integration_test/fail_logins_test.dart -d "iPhone 15" --verbose)
         echo "$TEST_OUTPUT" > "$TEST_DIR/test_output.txt"
         
         cat > "$TEST_DIR/html/report.html" << EOF
