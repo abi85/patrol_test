@@ -1,7 +1,7 @@
 definitions:
   qa_emails: &qa_emails
     - baloabby@gmail.com
-
+  
   channel: &channel
     'codemagic'
   
@@ -9,8 +9,7 @@ definitions:
     - patrol-results/**/*.png
     - patrol-results/**/*.xml
     - patrol-results/**/*.mp4
-    - test_report/**/*.xml
-    - reports/**/*.txt
+    - test_report/**/*.xml 
 
   max_build_duration: &duration 120
 
@@ -68,8 +67,9 @@ definitions:
     - &ios_patrol_test
       name: Run iOS Patrol Tests
       script: |
+        mkdir -p reports
         patrol test -t integration_test/fail_login_test.dart  \
-          -d "iPhone 15"
+          -d "iPhone 15" > reports/test_report.xml
 
     - &generate_test_report
       name: Generate Test Report
@@ -148,12 +148,8 @@ workflows:
       - *send_test_results_email 
     artifacts: *artifacts
     publishing:
-      slack:
-        channel: *channel
-        notify_on_build_start: true # To receive a notification when a build starts
-        notify:
-          success: true # To receive a notification when a build succeeds
-          failure: true # To receive a notification when a build fails
+      email:
+        recipients: *qa_emails
 
   patrol_ios_test:
     name: iOS Test Workflow
@@ -167,11 +163,13 @@ workflows:
       - *ios_setup
       - *ios_simulator_setup
       - *ios_patrol_test
+      - *generate_test_report
+      - *send_test_results_email 
     artifacts: *artifacts
     publishing:
       slack:
         channel: *channel
         notify_on_build_start: true # To receive a notification when a build starts
         notify:
-          success: true # To receive a notification when a build succeeds
-          failure: true # To receive a notification when a build fails
+          success: true # To not receive a notification when a build succeeds
+          failure: true # To not receive a notification when a build fails
