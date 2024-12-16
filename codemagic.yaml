@@ -2,8 +2,13 @@ definitions:
   qa_emails: &qa_emails
     - baloabby@gmail.com
 
-  channel: &channel
-    'codemagic'
+  publishing: &publishing
+      slack:
+        channel: 'codemagic'
+        notify_on_build_start: true # To receive a notification when a build starts
+        notify:
+          success: true # To receive a notification when a build succeeds
+          failure: true # To receive a notification when a build fails
   
   artifacts: &artifacts
     - patrol-results/**/*.png
@@ -197,10 +202,4 @@ workflows:
       - *ios_patrol_test
       - *verify_and_prepare_report
     artifacts: *artifacts
-    publishing:
-      slack:
-        channel: *channel
-        notify_on_build_start: true # To receive a notification when a build starts
-        notify:
-          success: true # To receive a notification when a build succeeds
-          failure: true # To receive a notification when a build fails
+    publishing: *publishing
