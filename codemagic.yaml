@@ -48,15 +48,8 @@ definitions:
     - &android_patrol_test
       name: Run Android Patrol Tests
       script: |
-        mkdir -p reports
-        echo "Running Android Patrol Tests..."  # Debug message
-        TEST_OUTPUT=$(patrol test -t integration_test/fail_login_test.dart --verbose)
-        echo "Android Test Results - $(date)" > reports/test_report.txt
-        echo "----------------------------------------" >> reports/test_report.txt
-        echo "$TEST_OUTPUT" >> reports/test_report.txt
-        echo "----------------------------------------" >> reports/test_report.txt
-        echo "Test Completed at: $(date)" >> reports/test_report.txt
-        echo "Test report written to reports/test_report.txt"  # Debug message
+        patrol test -t integration_test/fail_login_test.dart \
+          --verbose
       ignore_failure: false
 
     - &ios_setup
@@ -75,26 +68,18 @@ definitions:
     - &ios_patrol_test
       name: Run iOS Patrol Tests
       script: |
-         mkdir -p reports
-          echo "Running iOS Patrol Tests..."  # Debug message
-          TEST_OUTPUT=$(patrol test -t integration_test/fail_login_test.dart -d "iPhone 15" --verbose)
-          echo "iOS Test Results - $(date)" > reports/test_report.txt
-          echo "----------------------------------------" >> reports/test_report.txt
-          echo "$TEST_OUTPUT" >> reports/test_report.txt
-          echo "----------------------------------------" >> reports/test_report.txt
-          echo "Test Completed at: $(date)" >> reports/test_report.txt
-          echo "Test report written to reports/test_report.txt"  # Debug message
+        patrol test -t integration_test/fail_login_test.dart  \
+          -d "iPhone 15"
 
     - &generate_test_report
       name: Generate Test Report
       script: |
-        echo "Checking for test report..."
-        if [ ! -f reports/test_report.txt ]; then
-          echo "Test report not found in reports/. Skipping email sending."
-          exit 1
+        which mail
+        if [ ! -f reports/test_report.xml ]; then
+        echo "Test report not found. Skipping email sending."
+        exit 1
         fi
-        echo "Test report generated at reports/test_report.txt"
-        cat reports/test_report.txt  # Print the contents of the report for debugging
+        echo "Test report generated at reports/test_report.xml"
 
     - &send_test_results_email
       name: Email Test Results
@@ -102,43 +87,50 @@ definitions:
         echo "Sending test results to QA team..."
 
         # Ensure the test report exists and is not empty
-        if [ ! -f reports/test_report.txt ]; then
-          echo "Test report not found at reports/test_report.txt. Exiting."
+        if [ ! -f reports/test_report.xml ]; then
+          echo "Test report not found at reports/test_report.xml. Exiting."
           exit 1
         fi
 
-        if [ ! -s reports/test_report.txt ]; then
+        if [ ! -s reports/test_report.xml ]; then
           echo "Test report is empty. Exiting."
           exit 1
         fi
 
-        # Show file details for debugging
+        # Show file details for debugging (size, last modified, etc.)
         echo "Test report file details:"
-        ls -lh reports/test_report.txt
+        ls -lh reports/test_report.xml
 
-        # Create email with the test report content
+        # Encode the test report to base64
+        echo "Encoding test report..."
+        base64 -i reports/test_report.xml > reports/test_report.base64
+
+        if [ $? -ne 0 ]; then
+          echo "Base64 encoding failed. Exiting."
+          exit 1
+        fi
+
+        echo "Base64 encoding completed successfully."
+
         (
           echo "Subject: Test Results: Patrol Tests"
-          echo "To: baloabby@gmail.com"
+          echo "To:baloabby@gmail.com"
           echo "MIME-Version: 1.0"
           echo "Content-Type: multipart/mixed; boundary=\"boundary123\""
           echo ""
           echo "--boundary123"
           echo "Content-Type: text/plain; charset=\"UTF-8\""
           echo ""
-          echo "Please find the test results attached."
+          echo "Test results are attached."
           echo ""
           echo "--boundary123"
-          echo "Content-Type: text/plain; name=\"test_report.txt\""
-          echo "Content-Disposition: attachment; filename=\"test_report.txt\""
+          echo "Content-Type: application/xml; name=\"test_report.xml\""
+          echo "Content-Disposition: attachment; filename=\"test_report.xml\""
           echo "Content-Transfer-Encoding: base64"
-          echo ""
-          base64 reports/test_report.txt
-          echo ""
+          cat reports/test_report.base64
           echo "--boundary123--"
-        ) | sendmail -t
-
-        echo "Email sent successfully with test report attached."
+        ) 
+        echo "Test email body" | mail -s "Test Subject" baloabby@gmail.com
 
 workflows:
   patrol_android_test:
@@ -157,11 +149,11 @@ workflows:
     artifacts: *artifacts
     publishing:
       slack:
-        channel: '#codemagic'
+        channel: *channel
         notify_on_build_start: true # To receive a notification when a build starts
         notify:
-          success: true # To not receive a notification when a build succeeds
-          failure: true # To not receive a notification when a build fails
+          success: true # To receive a notification when a build succeeds
+          failure: true # To receive a notification when a build fails
 
   patrol_ios_test:
     name: iOS Test Workflow
@@ -175,13 +167,11 @@ workflows:
       - *ios_setup
       - *ios_simulator_setup
       - *ios_patrol_test
-      - *generate_test_report
-      - *send_test_results_email 
     artifacts: *artifacts
     publishing:
       slack:
         channel: *channel
         notify_on_build_start: true # To receive a notification when a build starts
         notify:
-          success: true # To not receive a notification when a build succeeds
-          failure: true # To not receive a notification when a build fails
+          success: true # To receive a notification when a build succeeds
+          failure: true # To receive a notification when a build fails
