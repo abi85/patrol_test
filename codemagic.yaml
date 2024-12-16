@@ -153,8 +153,12 @@ workflows:
       - *send_test_results_email 
     artifacts: *artifacts
     publishing:
-      email:
-        recipients: *qa_emails
+      slack:
+        channel: '#codemagic'
+        notify_on_build_start: true # To receive a notification when a build starts
+        notify:
+          success: true # To not receive a notification when a build succeeds
+          failure: true # To not receive a notification when a build fails
 
   patrol_ios_test:
     name: iOS Test Workflow
@@ -173,7 +177,7 @@ workflows:
     artifacts: *artifacts
     publishing:
       slack:
-        channel: '#codemagic'
+        channel: 'codemagic'
         notify_on_build_start: true # To receive a notification when a build starts
         notify:
           success: true # To not receive a notification when a build succeeds
