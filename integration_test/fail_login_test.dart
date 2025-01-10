@@ -6,7 +6,7 @@ void main() {
     await $.pumpWidgetAndSettle(const MyApp());
     await Future<void>.delayed(const Duration(seconds: 3));
     await $(#email_field).enterText('testuser@gmail.com');
-    await $(#password_field).enterText('password');
+    await $(#password_fields).enterText('password');
     await $(#login_btn).tap();
 
     await $(#invalid_login)
