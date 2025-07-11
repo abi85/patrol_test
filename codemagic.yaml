@@ -47,7 +47,7 @@ definitions:
         sdkmanager --update
         yes | sdkmanager --licenses
         cd $ANDROID_HOME/tools
-        emulator -avd emulator-34 &
+        emulator -avd emulator &
         adb wait-for-device
         adb shell input keyevent 82
 
