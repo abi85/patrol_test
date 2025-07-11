@@ -47,11 +47,9 @@ definitions:
         export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
         sdkmanager --update
         yes | sdkmanager --licenses
-
         cd $ANDROID_HOME/tools
         emulator -avd emulator-34 &
         adb wait-for-device
-
     - &android_patrol_test
       name: Run Android Patrol Tests
       script: |
