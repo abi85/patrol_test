@@ -43,14 +43,15 @@ definitions:
     - &android_setup_emulator
       name: Setup Android Emulator
       script: |
+        emulator -list -avds
         export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
         sdkmanager --update
         yes | sdkmanager --licenses
+
         cd $ANDROID_HOME/tools
         emulator -avd emulator &
         adb wait-for-device
-        adb shell input keyevent 82
-
+        
     - &android_patrol_test
       name: Run Android Patrol Tests
       script: |
