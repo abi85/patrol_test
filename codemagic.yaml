@@ -49,9 +49,9 @@ definitions:
         yes | sdkmanager --licenses
 
         cd $ANDROID_HOME/tools
-        emulator -avd emulator &
+        emulator -avd emulator-34 &
         adb wait-for-device
-        
+
     - &android_patrol_test
       name: Run Android Patrol Tests
       script: |
