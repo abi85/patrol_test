@@ -59,13 +59,13 @@ definitions:
     - &ios_simulator_setup
       name: Start iOS Simulator
       script: |
-        xcrun simctl boot "iPhone 15"
+        xcrun simctl boot "iPhone 16 Pro"
 
     - &ios_patrol_test
       name: Run iOS Patrol Tests
       script: |
         patrol test -t integration_test/fail_login_test.dart  \
-        -d "iPhone 15" \
+        -d "one 16 Pro" \
 
     - &generate_test_report
       name: Generate Test Report
