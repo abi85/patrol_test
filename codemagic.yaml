@@ -64,7 +64,6 @@ definitions:
     - &ios_patrol_test
       name: Run iOS Patrol Tests
       script: |
-        mkdir -p reports
         patrol test -t integration_test/fail_login_test.dart  \
           -d "iPhone 15" \
           --verbose > reports/test_report.xml
