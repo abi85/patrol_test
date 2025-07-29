@@ -65,8 +65,7 @@ definitions:
       name: Run iOS Patrol Tests
       script: |
         patrol test -t integration_test/fail_login_test.dart  \
-          -d "iPhone 15" \
-          --verbose > reports/test_report.xml
+        -d "iPhone 15" \
 
     - &generate_test_report
       name: Generate Test Report
