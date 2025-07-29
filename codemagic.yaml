@@ -145,7 +145,7 @@ definitions:
         echo "Checking test report..."
         ls -la $TEST_DIR/html/report.html
         echo "Report generated successfully"
-
+      test_report: test-results/flutter.json
     - &verify_and_prepare_report
       name: Verify Report Generation
       script: |
